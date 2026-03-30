@@ -1,0 +1,1290 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>สุขใจ คาร์เร้นท์ - ระบบออกบิลใบเสร็จ</title>
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&family=Noto+Serif+Thai:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --black: #0a0a0a;
+    --white: #ffffff;
+    --gray-100: #f5f5f5;
+    --gray-200: #e8e8e8;
+    --gray-300: #d0d0d0;
+    --gray-400: #a0a0a0;
+    --gray-600: #555;
+    --accent: #0a0a0a;
+    --header-bg: #b8d4e8;
+    --table-header: #7fb3cc;
+    --amount-bg: #7fb3cc;
+    --highlight: #d4e8f4;
+    --original-badge: #e8c88a;
+    --copy-badge: #e8c88a;
+  }
+
+  body {
+    font-family: 'Sarabun', sans-serif;
+    background: #f0f0f0;
+    color: var(--black);
+    min-height: 100vh;
+  }
+
+  /* ===== APP SHELL ===== */
+  .app {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+  }
+
+  .topbar {
+    background: var(--black);
+    color: var(--white);
+    padding: 16px 32px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.3);
+  }
+
+  .topbar-title {
+    font-family: 'Noto Serif Thai', serif;
+    font-size: 1.15rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+  }
+
+  .topbar-sub {
+    font-size: 0.72rem;
+    color: #aaa;
+    margin-top: 2px;
+  }
+
+  .topbar-actions {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+  }
+
+  .btn {
+    font-family: 'Sarabun', sans-serif;
+    font-size: 0.82rem;
+    font-weight: 600;
+    padding: 9px 20px;
+    border: none;
+    cursor: pointer;
+    border-radius: 3px;
+    transition: all 0.18s ease;
+    letter-spacing: 0.02em;
+  }
+
+  .btn-primary {
+    background: var(--white);
+    color: var(--black);
+  }
+
+  .btn-primary:hover {
+    background: #e0e0e0;
+  }
+
+  .btn-outline {
+    background: transparent;
+    color: var(--white);
+    border: 1.5px solid #555;
+  }
+
+  .btn-outline:hover {
+    border-color: var(--white);
+    background: rgba(255,255,255,0.08);
+  }
+
+  .btn-dark {
+    background: var(--black);
+    color: var(--white);
+    border: 2px solid var(--black);
+  }
+
+  .btn-dark:hover {
+    background: #333;
+  }
+
+  /* ===== MAIN LAYOUT ===== */
+  .main {
+    display: grid;
+    grid-template-columns: 380px 1fr;
+    gap: 0;
+    flex: 1;
+  }
+
+  /* ===== FORM PANEL ===== */
+  .form-panel {
+    background: var(--white);
+    border-right: 1px solid var(--gray-200);
+    overflow-y: auto;
+    height: calc(100vh - 57px);
+    position: sticky;
+    top: 57px;
+  }
+
+  .form-panel-header {
+    padding: 20px 24px 14px;
+    border-bottom: 1px solid var(--gray-200);
+    background: var(--white);
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+
+  .form-panel-header h2 {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--black);
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+  }
+
+  .form-panel-header p {
+    font-size: 0.72rem;
+    color: var(--gray-400);
+    margin-top: 3px;
+  }
+
+  .form-body {
+    padding: 20px 24px;
+  }
+
+  .form-section {
+    margin-bottom: 22px;
+  }
+
+  .form-section-title {
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--gray-400);
+    margin-bottom: 10px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid var(--gray-200);
+  }
+
+  .form-group {
+    margin-bottom: 10px;
+  }
+
+  label {
+    display: block;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--gray-600);
+    margin-bottom: 4px;
+  }
+
+  input[type="text"],
+  input[type="number"],
+  input[type="date"],
+  textarea,
+  select {
+    width: 100%;
+    padding: 8px 10px;
+    border: 1.5px solid var(--gray-200);
+    border-radius: 3px;
+    font-family: 'Sarabun', sans-serif;
+    font-size: 0.82rem;
+    color: var(--black);
+    background: var(--white);
+    transition: border-color 0.15s;
+    outline: none;
+  }
+
+  input:focus, textarea:focus, select:focus {
+    border-color: var(--black);
+  }
+
+  textarea {
+    resize: vertical;
+    min-height: 60px;
+  }
+
+  .form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+
+  .form-row-3 {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 8px;
+  }
+
+  /* Items table in form */
+  .items-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.75rem;
+    margin-top: 8px;
+  }
+
+  .items-table th {
+    background: var(--black);
+    color: var(--white);
+    padding: 6px 8px;
+    text-align: left;
+    font-weight: 600;
+    font-size: 0.7rem;
+  }
+
+  .items-table td {
+    padding: 5px 4px;
+    vertical-align: middle;
+  }
+
+  .items-table td input {
+    font-size: 0.75rem;
+    padding: 5px 6px;
+  }
+
+  .btn-add-item {
+    margin-top: 8px;
+    width: 100%;
+    padding: 7px;
+    background: var(--gray-100);
+    border: 1.5px dashed var(--gray-300);
+    color: var(--gray-600);
+    font-family: 'Sarabun', sans-serif;
+    font-size: 0.75rem;
+    cursor: pointer;
+    border-radius: 3px;
+    transition: all 0.15s;
+  }
+
+  .btn-add-item:hover {
+    background: var(--gray-200);
+    border-color: var(--gray-400);
+  }
+
+  .btn-remove {
+    background: none;
+    border: none;
+    color: #cc3333;
+    font-size: 1rem;
+    cursor: pointer;
+    padding: 2px 5px;
+    line-height: 1;
+  }
+
+  /* Signature Upload */
+  .sig-upload {
+    border: 2px dashed var(--gray-300);
+    border-radius: 4px;
+    padding: 16px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.15s;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .sig-upload:hover {
+    border-color: var(--black);
+    background: var(--gray-100);
+  }
+
+  .sig-upload input[type="file"] {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    cursor: pointer;
+    width: 100%;
+    height: 100%;
+    padding: 0;
+    border: none;
+  }
+
+  .sig-upload-text {
+    font-size: 0.75rem;
+    color: var(--gray-400);
+    pointer-events: none;
+  }
+
+  .sig-preview {
+    max-height: 60px;
+    max-width: 100%;
+    object-fit: contain;
+    display: none;
+  }
+
+  .payment-checkboxes {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 6px;
+  }
+
+  .payment-checkboxes label {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.78rem;
+    font-weight: 400;
+    cursor: pointer;
+    margin: 0;
+    color: var(--black);
+  }
+
+  .payment-checkboxes input[type="checkbox"] {
+    width: auto;
+    cursor: pointer;
+  }
+
+  /* ===== PREVIEW PANEL ===== */
+  .preview-panel {
+    padding: 30px;
+    overflow-y: auto;
+    background: #e4e4e4;
+  }
+
+  .preview-label {
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--gray-400);
+    text-align: center;
+    margin-bottom: 16px;
+  }
+
+  /* ===== RECEIPT SHEET ===== */
+  .receipt-sheet {
+    background: var(--white);
+    width: 100%;
+    max-width: 1100px;
+    margin: 0 auto;
+    box-shadow: 0 4px 40px rgba(0,0,0,0.15);
+    padding: 0;
+    font-size: 11px;
+    font-family: 'Sarabun', sans-serif;
+  }
+
+  .receipt-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    border: 1px solid #999;
+  }
+
+  .receipt-col {
+    padding: 0;
+  }
+
+  .receipt-col:first-child {
+    border-right: 1px solid #999;
+  }
+
+  /* Header */
+  .receipt-header {
+    background: var(--header-bg);
+    text-align: center;
+    padding: 10px 8px 6px;
+    border-bottom: 1px solid #999;
+  }
+
+  .receipt-company-name {
+    font-family: 'Noto Serif Thai', serif;
+    font-size: 15px;
+    font-weight: 700;
+    color: #1a1a1a;
+  }
+
+  .receipt-company-addr {
+    font-size: 10px;
+    color: #333;
+    margin-top: 2px;
+  }
+
+  .receipt-company-tel {
+    font-size: 10px;
+    color: #333;
+  }
+
+  /* Top info area */
+  .receipt-top {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 0;
+    padding: 8px 10px;
+    border-bottom: 1px solid #999;
+    min-height: 110px;
+  }
+
+  .receipt-top-left {
+    flex: 1;
+  }
+
+  .receipt-doc-title {
+    font-family: 'Noto Serif Thai', serif;
+    font-size: 16px;
+    font-weight: 700;
+    text-align: center;
+    margin-bottom: 8px;
+    color: #1a1a1a;
+  }
+
+  .receipt-info-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 4px;
+    margin-bottom: 4px;
+    font-size: 10.5px;
+  }
+
+  .receipt-info-label {
+    font-weight: 700;
+    white-space: nowrap;
+    min-width: 38px;
+  }
+
+  .receipt-info-value {
+    flex: 1;
+    border-bottom: 1px solid #999;
+    min-height: 16px;
+    padding-bottom: 1px;
+    color: #1a1a1a;
+  }
+
+  .receipt-address-block {
+    margin-left: 42px;
+    font-size: 10.5px;
+    border-bottom: 1px solid #999;
+    min-height: 40px;
+    padding-bottom: 2px;
+    color: #1a1a1a;
+    line-height: 1.5;
+  }
+
+  .receipt-taxid {
+    font-size: 10px;
+    margin-left: 42px;
+    margin-top: 4px;
+    color: #1a1a1a;
+  }
+
+  .branch-row {
+    display: flex;
+    gap: 14px;
+    margin-left: 42px;
+    margin-top: 5px;
+    font-size: 10px;
+    align-items: center;
+  }
+
+  .branch-option {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .checkbox-box {
+    width: 12px;
+    height: 12px;
+    border: 1px solid #555;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 9px;
+    flex-shrink: 0;
+  }
+
+  .receipt-top-right {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    padding-left: 12px;
+  }
+
+  .receipt-badge {
+    background: var(--original-badge);
+    border: 1px solid #999;
+    text-align: center;
+    padding: 8px 14px;
+    font-weight: 700;
+    font-size: 12px;
+    border-radius: 4px;
+    min-width: 70px;
+    line-height: 1.4;
+  }
+
+  .receipt-date-box {
+    border: 1px solid #999;
+    text-align: center;
+    padding: 5px 10px;
+    font-size: 11px;
+    font-weight: 600;
+    min-width: 70px;
+    border-radius: 3px;
+    background: var(--white);
+  }
+
+  /* Table */
+  .receipt-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 10.5px;
+  }
+
+  .receipt-table th {
+    background: var(--table-header);
+    padding: 6px 5px;
+    text-align: center;
+    border: 1px solid #999;
+    font-weight: 700;
+    font-size: 10.5px;
+  }
+
+  .receipt-table td {
+    border: 1px solid #ccc;
+    padding: 4px 6px;
+    vertical-align: top;
+    min-height: 20px;
+  }
+
+  .receipt-table .col-no { width: 32px; text-align: center; }
+  .receipt-table .col-detail { }
+  .receipt-table .col-price { width: 64px; text-align: right; }
+  .receipt-table .col-qty { width: 36px; text-align: center; }
+  .receipt-table .col-total { width: 64px; text-align: right; }
+
+  .receipt-item-sub {
+    font-size: 10px;
+    color: #444;
+    margin-top: 1px;
+  }
+
+  .empty-row td {
+    height: 22px;
+  }
+
+  /* Footer total */
+  .receipt-total-row {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    border-top: 1px solid #999;
+    border-bottom: 1px solid #999;
+    font-size: 10.5px;
+  }
+
+  .receipt-total-left {
+    background: var(--amount-bg);
+    padding: 5px 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    border-right: 1px solid #999;
+  }
+
+  .receipt-total-text-main {
+    font-weight: 700;
+    font-size: 10px;
+  }
+
+  .receipt-total-text-words {
+    font-size: 10px;
+    font-weight: 600;
+  }
+
+  .receipt-total-right {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 8px;
+    min-width: 150px;
+    justify-content: flex-end;
+  }
+
+  .receipt-total-label {
+    font-size: 10px;
+    white-space: nowrap;
+  }
+
+  .receipt-total-value {
+    font-weight: 700;
+    font-size: 12px;
+    min-width: 60px;
+    text-align: right;
+  }
+
+  /* Payment section */
+  .receipt-payment {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    border-top: 1px solid #ccc;
+    padding: 8px 10px;
+    gap: 10px;
+    align-items: start;
+  }
+
+  .payment-section-title {
+    font-weight: 700;
+    font-size: 10px;
+    margin-bottom: 5px;
+  }
+
+  .payment-options {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 14px;
+    font-size: 10px;
+  }
+
+  .payment-opt {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+  }
+
+  .payment-line {
+    display: flex;
+    gap: 4px;
+    align-items: center;
+    margin-top: 4px;
+    font-size: 10px;
+  }
+
+  .payment-line-label {
+    white-space: nowrap;
+  }
+
+  .payment-line-value {
+    flex: 1;
+    border-bottom: 1px solid #999;
+    min-height: 14px;
+    min-width: 60px;
+  }
+
+  .sig-section {
+    text-align: center;
+    min-width: 100px;
+  }
+
+  .sig-image-area {
+    height: 50px;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    margin-bottom: 2px;
+  }
+
+  .sig-image-area img {
+    max-height: 50px;
+    max-width: 90px;
+    object-fit: contain;
+  }
+
+  .sig-line {
+    border-top: 1px solid #555;
+    font-size: 9.5px;
+    padding-top: 2px;
+    color: #333;
+    text-align: center;
+  }
+
+  .sig-date {
+    font-size: 9.5px;
+    color: #333;
+    margin-top: 2px;
+    text-align: center;
+  }
+
+  /* ===== PRINT STYLES ===== */
+  @media print {
+    body { background: white; }
+    .topbar, .form-panel, .preview-label, .print-hint { display: none !important; }
+    .main { display: block; }
+    .preview-panel { padding: 0; background: white; overflow: visible; }
+    .receipt-sheet {
+      box-shadow: none;
+      max-width: 100%;
+      width: 100%;
+      font-size: 10px;
+    }
+    .receipt-grid {
+      page-break-inside: avoid;
+    }
+  }
+
+  .print-hint {
+    text-align: center;
+    margin-top: 14px;
+    font-size: 0.7rem;
+    color: var(--gray-400);
+  }
+
+  .total-summary {
+    background: var(--gray-100);
+    border-radius: 4px;
+    padding: 10px 12px;
+    margin-top: 10px;
+    font-size: 0.78rem;
+  }
+
+  .total-summary .row {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 3px;
+  }
+
+  .total-summary .grand {
+    font-weight: 700;
+    font-size: 0.9rem;
+    border-top: 1px solid var(--gray-300);
+    padding-top: 6px;
+    margin-top: 4px;
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <!-- TOP BAR -->
+  <div class="topbar">
+    <div>
+      <div class="topbar-title">สุขใจ คาร์เร้นท์ · ระบบออกใบเสร็จรับเงิน</div>
+      <div class="topbar-sub">กรอกข้อมูลด้านซ้าย → ตัวอย่างบิลจะอัปเดตอัตโนมัติ</div>
+    </div>
+    <div class="topbar-actions">
+      <button class="btn btn-outline" onclick="resetForm()">รีเซ็ต</button>
+      <button class="btn btn-primary" onclick="window.print()">🖨️ พิมพ์ / บันทึก PDF</button>
+    </div>
+  </div>
+
+  <div class="main">
+    <!-- FORM PANEL -->
+    <div class="form-panel">
+      <div class="form-panel-header">
+        <h2>กรอกข้อมูลบิล</h2>
+        <p>ข้อมูลจะแสดงผลในตัวอย่างบิลทันที</p>
+      </div>
+      <div class="form-body">
+
+        <!-- วันที่ -->
+        <div class="form-section">
+          <div class="form-section-title">วันที่เอกสาร</div>
+          <div class="form-group">
+            <label>วันที่ออกใบเสร็จ</label>
+            <input type="date" id="docDate" onchange="updatePreview()">
+          </div>
+        </div>
+
+        <!-- ข้อมูลลูกค้า -->
+        <div class="form-section">
+          <div class="form-section-title">ข้อมูลผู้เช่า / ลูกค้า</div>
+          <div class="form-group">
+            <label>ชื่อ / Name</label>
+            <input type="text" id="customerName" placeholder="เช่น บริษัท เคหุ เวนเจอร์ฯ" oninput="updatePreview()">
+          </div>
+          <div class="form-group">
+            <label>ที่อยู่บรรทัดที่ 1</label>
+            <input type="text" id="addr1" placeholder="เช่น บ้านเลขที่ 30 ซ.พระราม..." oninput="updatePreview()">
+          </div>
+          <div class="form-group">
+            <label>ที่อยู่บรรทัดที่ 2</label>
+            <input type="text" id="addr2" placeholder="เช่น ถ.รามคำแหง แขวง/เขต..." oninput="updatePreview()">
+          </div>
+          <div class="form-group">
+            <label>ที่อยู่บรรทัดที่ 3</label>
+            <input type="text" id="addr3" placeholder="เช่น กรุงเทพฯ 10250" oninput="updatePreview()">
+          </div>
+          <div class="form-group">
+            <label>เลขทะเบียนนิติบุคคล / บัตรประชาชน</label>
+            <input type="text" id="taxId" placeholder="เช่น 0105554132374" oninput="updatePreview()">
+          </div>
+          <div class="form-group">
+            <label>สาขา</label>
+            <div class="form-row">
+              <label style="display:flex;align-items:center;gap:6px;font-weight:400;cursor:pointer;margin:0">
+                <input type="radio" name="branch" value="main" onchange="updatePreview()" checked> สำนักงานใหญ่
+              </label>
+              <label style="display:flex;align-items:center;gap:6px;font-weight:400;cursor:pointer;margin:0">
+                <input type="radio" name="branch" value="branch" onchange="updatePreview()"> สาขา
+              </label>
+            </div>
+          </div>
+          <div class="form-group" id="branchNoGroup" style="display:none">
+            <label>หมายเลขสาขา</label>
+            <input type="text" id="branchNo" placeholder="หมายเลขสาขา" oninput="updatePreview()">
+          </div>
+        </div>
+
+        <!-- รายการสินค้า/บริการ -->
+        <div class="form-section">
+          <div class="form-section-title">รายการบริการ</div>
+          <table class="items-table">
+            <thead>
+              <tr>
+                <th style="width:30px">#</th>
+                <th>รายละเอียด</th>
+                <th style="width:70px">ราคา/หน่วย</th>
+                <th style="width:46px">จำนวน</th>
+                <th style="width:40px">หน่วย</th>
+                <th style="width:24px"></th>
+              </tr>
+            </thead>
+            <tbody id="itemsBody"></tbody>
+          </table>
+          <button class="btn-add-item" onclick="addItem()">+ เพิ่มรายการ</button>
+
+          <div class="total-summary" id="totalSummary">
+            <div class="row"><span>รวมทั้งสิ้น</span><span id="grandTotalDisplay">0.00 บาท</span></div>
+          </div>
+        </div>
+
+        <!-- การชำระเงิน -->
+        <div class="form-section">
+          <div class="form-section-title">การชำระเงิน</div>
+          <div class="form-group">
+            <label>วิธีชำระ</label>
+            <div class="payment-checkboxes">
+              <label><input type="checkbox" id="paymentCash" onchange="updatePreview()" checked> เงินสด</label>
+              <label><input type="checkbox" id="paymentCard" onchange="updatePreview()"> บัตรเครดิต</label>
+              <label><input type="checkbox" id="paymentCheque" onchange="updatePreview()"> เช็ค</label>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>เลขบัตรเครดิต (ถ้ามี)</label>
+            <input type="text" id="cardNo" placeholder="xxxx xxxx xxxx xxxx" oninput="updatePreview()">
+          </div>
+          <div class="form-group">
+            <label>ธนาคาร (ถ้าชำระด้วยเช็ค)</label>
+            <input type="text" id="bankName" placeholder="ชื่อธนาคาร" oninput="updatePreview()">
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>เลขที่เช็ค</label>
+              <input type="text" id="chequeNo" placeholder="" oninput="updatePreview()">
+            </div>
+            <div class="form-group">
+              <label>วันที่</label>
+              <input type="date" id="chequeDate" onchange="updatePreview()">
+            </div>
+          </div>
+          <div class="form-group">
+            <label>สาขา (เช็ค)</label>
+            <input type="text" id="chequeBranch" placeholder="สาขา" oninput="updatePreview()">
+          </div>
+        </div>
+
+        <!-- ลายเซ็น -->
+        <div class="form-section">
+          <div class="form-section-title">ลายเซ็น</div>
+          <div class="form-group">
+            <label>อัปโหลดลายเซ็น (PNG/JPG โปร่งใส)</label>
+            <div class="sig-upload" id="sigUploadArea">
+              <input type="file" id="sigFile" accept="image/*" onchange="handleSigUpload(event)">
+              <img class="sig-preview" id="sigPreview" src="" alt="ลายเซ็น">
+              <div class="sig-upload-text" id="sigUploadText">คลิกหรือลากไฟล์ลายเซ็นมาวาง</div>
+            </div>
+            <button class="btn btn-outline" style="margin-top:6px;font-size:0.72rem;padding:5px 10px;color:#555;border-color:#ccc" onclick="clearSig()">ล้างลายเซ็น</button>
+          </div>
+          <div class="form-group">
+            <label>ชื่อผู้รับเงิน (ใต้ลายเซ็น)</label>
+            <input type="text" id="sigName" placeholder="ชื่อผู้รับเงิน" oninput="updatePreview()">
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- PREVIEW PANEL -->
+    <div class="preview-panel">
+      <div class="preview-label">ตัวอย่างบิล (PREVIEW) — จะพิมพ์ออกมาเหมือนนี้</div>
+      <div class="receipt-sheet" id="receiptSheet">
+        <!-- Rendered by JS -->
+      </div>
+      <div class="print-hint">กด "พิมพ์ / บันทึก PDF" บนแถบด้านบน หรือกด Ctrl+P / ⌘P</div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ========== STATE ==========
+let items = [
+  { detail: 'ค่าบริการรถเช่า Toyota Yaris', subdetail: '(วันที่ 6-8 มีนาคม 2569)', price: 890, qty: 3, unit: 'วัน' }
+];
+let sigDataUrl = null;
+
+// ========== INIT ==========
+window.addEventListener('DOMContentLoaded', () => {
+  // Set default values
+  document.getElementById('docDate').value = '2026-03-08';
+  document.getElementById('customerName').value = 'บริษัท เคหุ เวนเจอร์ฯ จำกัด (สำนักงานใหญ่)';
+  document.getElementById('addr1').value = 'บ้านเลขที่ 30 ซ.พระราม เก้า 41 (ซอย4เสรี2)';
+  document.getElementById('addr2').value = 'ถ.รามคำแหง แขวง/เขต สวนหลวง กรุงเทพฯ 10250';
+  document.getElementById('taxId').value = 'เลขทะเบียนนิติบุคคล 0105554132374';
+  document.getElementById('sigName').value = 'ผู้รับเงิน';
+
+  // Branch radio listener
+  document.querySelectorAll('input[name="branch"]').forEach(r => {
+    r.addEventListener('change', () => {
+      document.getElementById('branchNoGroup').style.display =
+        r.value === 'branch' && r.checked ? 'block' : 'none';
+      updatePreview();
+    });
+  });
+
+  renderItemsForm();
+  updatePreview();
+});
+
+// ========== ITEMS ==========
+function renderItemsForm() {
+  const tbody = document.getElementById('itemsBody');
+  tbody.innerHTML = '';
+  items.forEach((item, i) => {
+    tbody.innerHTML += `
+      <tr>
+        <td style="text-align:center;font-size:0.7rem;color:#888">${i+1}</td>
+        <td>
+          <input type="text" value="${item.detail}" placeholder="รายละเอียดหลัก"
+            oninput="items[${i}].detail=this.value;updatePreview()" style="margin-bottom:3px">
+          <input type="text" value="${item.subdetail||''}" placeholder="รายละเอียดเพิ่มเติม (เช่น วันที่)"
+            oninput="items[${i}].subdetail=this.value;updatePreview()">
+        </td>
+        <td>
+          <input type="number" value="${item.price}" min="0" step="0.01"
+            oninput="items[${i}].price=parseFloat(this.value)||0;updatePreview()">
+        </td>
+        <td>
+          <input type="number" value="${item.qty}" min="1"
+            oninput="items[${i}].qty=parseInt(this.value)||1;updatePreview()">
+        </td>
+        <td>
+          <input type="text" value="${item.unit||'วัน'}"
+            oninput="items[${i}].unit=this.value;updatePreview()">
+        </td>
+        <td><button class="btn-remove" onclick="removeItem(${i})" title="ลบ">×</button></td>
+      </tr>`;
+  });
+  updateTotalDisplay();
+}
+
+function addItem() {
+  items.push({ detail: '', subdetail: '', price: 0, qty: 1, unit: 'วัน' });
+  renderItemsForm();
+  updatePreview();
+}
+
+function removeItem(i) {
+  if (items.length === 1) return alert('ต้องมีอย่างน้อย 1 รายการ');
+  items.splice(i, 1);
+  renderItemsForm();
+  updatePreview();
+}
+
+function calcTotal() {
+  return items.reduce((s, it) => s + (it.price * it.qty), 0);
+}
+
+function updateTotalDisplay() {
+  document.getElementById('grandTotalDisplay').textContent =
+    formatNum(calcTotal()) + ' บาท';
+}
+
+// ========== SIGNATURE ==========
+function handleSigUpload(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    sigDataUrl = ev.target.result;
+    const prev = document.getElementById('sigPreview');
+    prev.src = sigDataUrl;
+    prev.style.display = 'block';
+    document.getElementById('sigUploadText').style.display = 'none';
+    updatePreview();
+  };
+  reader.readAsDataURL(file);
+}
+
+function clearSig() {
+  sigDataUrl = null;
+  document.getElementById('sigPreview').style.display = 'none';
+  document.getElementById('sigPreview').src = '';
+  document.getElementById('sigUploadText').style.display = 'block';
+  document.getElementById('sigFile').value = '';
+  updatePreview();
+}
+
+// ========== UTILS ==========
+function formatNum(n) {
+  if (isNaN(n)) return '0.00';
+  return n.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+function formatDateThai(dateStr) {
+  if (!dateStr) return '';
+  const d = new Date(dateStr);
+  if (isNaN(d)) return dateStr;
+  const months = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+  const buddhistYear = d.getFullYear() + 543;
+  return `${d.getDate()}-${months[d.getMonth()]}-${String(buddhistYear).slice(-2)}`;
+}
+
+function numberToThaiWords(num) {
+  const ones = ['','หนึ่ง','สอง','สาม','สี่','ห้า','หก','เจ็ด','แปด','เก้า'];
+  const tens = ['','สิบ','ยี่สิบ','สามสิบ','สี่สิบ','ห้าสิบ','หกสิบ','เจ็ดสิบ','แปดสิบ','เก้าสิบ'];
+  const digits = ['','ล้าน','แสน','หมื่น','พัน','ร้อย','สิบ',''];
+
+  if (num === 0) return 'ศูนย์บาทถ้วน';
+
+  const [intPart, decPart] = num.toFixed(2).split('.');
+  const intNum = parseInt(intPart);
+  const decNum = parseInt(decPart);
+
+  function convertChunk(n) {
+    if (n === 0) return '';
+    let result = '';
+    const s = String(n).padStart(7, '0');
+    for (let i = 0; i < s.length; i++) {
+      const d = parseInt(s[i]);
+      if (d === 0) continue;
+      if (i === 5 && d === 1) result += 'สิบ';
+      else if (i === 5 && d === 2) result += 'ยี่สิบ';
+      else if (i === 5) result += ones[d] + 'สิบ';
+      else result += ones[d] + digits[i + 1];
+    }
+    return result;
+  }
+
+  let result = '';
+  if (intNum >= 1000000) {
+    result += convertChunk(Math.floor(intNum / 1000000)) + 'ล้าน';
+    result += convertChunk(intNum % 1000000);
+  } else {
+    result += convertChunk(intNum);
+  }
+  result += 'บาท';
+  if (decNum === 0) result += 'ถ้วน';
+  else {
+    result += convertChunk(decNum) + 'สตางค์';
+  }
+  return result;
+}
+
+function getFormData() {
+  return {
+    docDate: document.getElementById('docDate').value,
+    customerName: document.getElementById('customerName').value,
+    addr1: document.getElementById('addr1').value,
+    addr2: document.getElementById('addr2').value,
+    addr3: document.getElementById('addr3').value?.value || document.getElementById('addr3').value,
+    taxId: document.getElementById('taxId').value,
+    branch: document.querySelector('input[name="branch"]:checked')?.value || 'main',
+    branchNo: document.getElementById('branchNo').value,
+    paymentCash: document.getElementById('paymentCash').checked,
+    paymentCard: document.getElementById('paymentCard').checked,
+    paymentCheque: document.getElementById('paymentCheque').checked,
+    cardNo: document.getElementById('cardNo').value,
+    bankName: document.getElementById('bankName').value,
+    chequeNo: document.getElementById('chequeNo').value,
+    chequeDate: document.getElementById('chequeDate').value,
+    chequeBranch: document.getElementById('chequeBranch').value,
+    sigName: document.getElementById('sigName').value,
+  };
+}
+
+// ========== RESET ==========
+function resetForm() {
+  if (!confirm('รีเซ็ตข้อมูลทั้งหมด?')) return;
+  document.getElementById('docDate').value = '';
+  document.getElementById('customerName').value = '';
+  document.getElementById('addr1').value = '';
+  document.getElementById('addr2').value = '';
+  document.getElementById('addr3').value = '';
+  document.getElementById('taxId').value = '';
+  document.getElementById('branchNo').value = '';
+  document.getElementById('cardNo').value = '';
+  document.getElementById('bankName').value = '';
+  document.getElementById('chequeNo').value = '';
+  document.getElementById('chequeDate').value = '';
+  document.getElementById('chequeBranch').value = '';
+  document.getElementById('sigName').value = 'ผู้รับเงิน';
+  document.getElementById('paymentCash').checked = true;
+  document.getElementById('paymentCard').checked = false;
+  document.getElementById('paymentCheque').checked = false;
+  items = [{ detail: '', subdetail: '', price: 0, qty: 1, unit: 'วัน' }];
+  clearSig();
+  renderItemsForm();
+  updatePreview();
+}
+
+// ========== RENDER RECEIPT ==========
+function buildReceiptColumn(data, isCopy) {
+  const total = calcTotal();
+  const totalWords = numberToThaiWords(total);
+  const dateDisplay = formatDateThai(data.docDate);
+  const isMain = data.branch === 'main';
+
+  // Items rows
+  const EMPTY_ROWS = 6;
+  let itemRows = '';
+  items.forEach((item, i) => {
+    itemRows += `
+      <tr>
+        <td class="col-no">${i+1}</td>
+        <td class="col-detail">
+          ${item.detail || ''}
+          ${item.subdetail ? `<div class="receipt-item-sub">${item.subdetail}</div>` : ''}
+        </td>
+        <td class="col-price">${item.price ? formatNum(item.price) : ''}</td>
+        <td class="col-qty">${item.qty || ''} ${item.unit || ''}</td>
+        <td class="col-total">${(item.price && item.qty) ? formatNum(item.price * item.qty) : ''}</td>
+      </tr>`;
+  });
+  // Fill empty rows
+  for (let i = items.length; i < EMPTY_ROWS; i++) {
+    itemRows += `<tr class="empty-row"><td class="col-no"></td><td class="col-detail"></td><td class="col-price"></td><td class="col-qty"></td><td class="col-total"></td></tr>`;
+  }
+
+  // Address lines
+  const addrLines = [data.addr1, data.addr2, data.addr3].filter(Boolean).join('<br>');
+
+  // Signature
+  const sigImg = sigDataUrl
+    ? `<img src="${sigDataUrl}" alt="ลายเซ็น" style="max-height:48px;max-width:80px;object-fit:contain">`
+    : '';
+
+  // Payment display
+  const cashChecked = data.paymentCash ? '✓' : '';
+  const cardChecked = data.paymentCard ? '✓' : '';
+  const chequeChecked = data.paymentCheque ? '✓' : '';
+
+  // Cheque date formatted
+  const chequeDateDisplay = data.chequeDate ? formatDateThai(data.chequeDate) : '';
+
+  return `
+    <!-- HEADER -->
+    <div class="receipt-header">
+      <div class="receipt-company-name">สุขใจ คาร์เร้นท์ รถเช่าเชียงใหม่</div>
+      <div class="receipt-company-addr">153/13 ม.13 ตำบลป่าแดด อำเภอเมือง จังหวัดเชียงใหม่ 50100</div>
+      <div class="receipt-company-tel">โทร. 086-4764793</div>
+    </div>
+
+    <!-- TOP INFO -->
+    <div class="receipt-top">
+      <div class="receipt-top-left">
+        <div class="receipt-doc-title">ใบเสร็จรับเงิน</div>
+        <div class="receipt-info-row">
+          <span class="receipt-info-label">ชื่อ/Name</span>
+          <span class="receipt-info-value">${data.customerName || ''}</span>
+        </div>
+        <div class="receipt-info-row">
+          <span class="receipt-info-label">ที่อยู่</span>
+          <span class="receipt-info-value" style="line-height:1.6">${addrLines}</span>
+        </div>
+        ${data.taxId ? `<div class="receipt-taxid">${data.taxId}</div>` : ''}
+        <div class="branch-row">
+          <div class="branch-option">
+            <div class="checkbox-box">${isMain ? '✓' : ''}</div>
+            <span>สำนักงานใหญ่</span>
+          </div>
+          <div class="branch-option">
+            <div class="checkbox-box">${!isMain ? '✓' : ''}</div>
+            <span>สาขาที่ ${!isMain ? (data.branchNo || '') : ''}</span>
+          </div>
+        </div>
+      </div>
+      <div class="receipt-top-right">
+        <div class="receipt-badge">${isCopy ? 'สำเนา<br>COPY' : 'ต้นฉบับ<br>ORIGINAL'}</div>
+        <div class="receipt-date-box">${dateDisplay || '&nbsp;'}</div>
+      </div>
+    </div>
+
+    <!-- TABLE -->
+    <table class="receipt-table">
+      <thead>
+        <tr>
+          <th class="col-no">ลำดับที่</th>
+          <th class="col-detail">รายละเอียด</th>
+          <th class="col-price">ราคาต่อหน่วย</th>
+          <th class="col-qty">จำนวน</th>
+          <th class="col-total">จำนวนรวม</th>
+        </tr>
+      </thead>
+      <tbody>${itemRows}</tbody>
+    </table>
+
+    <!-- TOTAL -->
+    <div class="receipt-total-row">
+      <div class="receipt-total-left">
+        <div class="receipt-total-text-main">(=${totalWords}=)</div>
+        <div class="receipt-total-text-words">จำนวนเงินตัวอักษร :</div>
+      </div>
+      <div class="receipt-total-right">
+        <span class="receipt-total-label">จำนวนเงินรวมทั้งสิ้น</span>
+        <span class="receipt-total-value">${formatNum(total)}</span>
+      </div>
+    </div>
+
+    <!-- PAYMENT + SIGNATURE -->
+    <div class="receipt-payment">
+      <div>
+        <div class="payment-section-title">ชำระโดย</div>
+        <div class="payment-options">
+          <div class="payment-opt">
+            <div class="checkbox-box">${cashChecked}</div>
+            <span>เงินสด</span>
+          </div>
+          <div class="payment-opt">
+            <div class="checkbox-box">${cardChecked}</div>
+            <span>บัตรเครดิต เลขที่ ${data.cardNo || '....................................'}</span>
+          </div>
+        </div>
+        <div class="payment-options" style="margin-top:4px">
+          <div class="payment-opt">
+            <div class="checkbox-box">${chequeChecked}</div>
+            <span>เช็ค</span>
+          </div>
+        </div>
+        <div class="payment-line" style="margin-top:6px">
+          <span class="payment-line-label">ธนาคาร</span>
+          <span class="payment-line-value">${data.bankName || ''}</span>
+          <span class="payment-line-label">เลขที่เช็ค</span>
+          <span class="payment-line-value">${data.chequeNo || ''}</span>
+        </div>
+        <div class="payment-line">
+          <span class="payment-line-label">สาขา</span>
+          <span class="payment-line-value">${data.chequeBranch || ''}</span>
+          <span class="payment-line-label">วันที่</span>
+          <span class="payment-line-value">${chequeDateDisplay || ''}</span>
+        </div>
+      </div>
+      <div class="sig-section">
+        <div class="sig-image-area">${sigImg}</div>
+        <div class="sig-line">
+          ${isCopy ? 'ผู้รับเงิน/ผู้รับมอบอำนาจ' : (data.sigName || 'ผู้รับเงิน')}
+        </div>
+        <div class="sig-date">${dateDisplay || ''}</div>
+      </div>
+    </div>
+  `;
+}
+
+function updatePreview() {
+  updateTotalDisplay();
+  const data = getFormData();
+  const sheet = document.getElementById('receiptSheet');
+  sheet.innerHTML = `
+    <div class="receipt-grid">
+      <div class="receipt-col">${buildReceiptColumn(data, false)}</div>
+      <div class="receipt-col">${buildReceiptColumn(data, true)}</div>
+    </div>
+  `;
+}
+</script>
+</body>
+</html>
