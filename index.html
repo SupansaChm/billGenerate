@@ -1077,7 +1077,7 @@
   <div class="topbar">
     <div>
       <div class="topbar-title">สุขใจ คาร์เร้นท์ · ระบบออกใบเสร็จ</div>
-      <div class="topbar-sub">กรอกข้อมูลด้านซ้าย → ตัวอย่างบิลจะอัปเดตอัตโนมัติ</div>
+      <div class="topbar-sub">บันทึกอัตโนมัติทุกครั้งที่แก้ไข · กรอกข้อมูลด้านซ้าย</div>
     </div>
     <div class="topbar-actions">
       <button class="btn btn-outline" onclick="resetForm()">รีเซ็ต</button>
@@ -1259,6 +1259,131 @@ let items = [
 ];
 let sigDataUrl = null;
 let currentTab = 'form';
+let saveTimer = null;
+
+// ========== LOCALSTORAGE KEYS ==========
+const LS_FORM = 'sukjai_form_v1';
+const LS_ITEMS = 'sukjai_items_v1';
+const LS_SIG = 'sukjai_sig_v1';
+
+// ========== TOAST ==========
+function showToast(msg, type = 'saved') {
+  const existing = document.getElementById('toast');
+  if (existing) existing.remove();
+  const t = document.createElement('div');
+  t.id = 'toast';
+  t.textContent = msg;
+  t.style.cssText = `
+    position:fixed; bottom:80px; left:50%; transform:translateX(-50%);
+    background:${type === 'saved' ? '#1a1a1a' : '#c0392b'};
+    color:#fff; padding:10px 20px; border-radius:20px;
+    font-family:'Sarabun',sans-serif; font-size:0.8rem; font-weight:600;
+    z-index:9999; box-shadow:0 4px 16px rgba(0,0,0,0.25);
+    opacity:1; transition:opacity 0.4s ease;
+    pointer-events:none;
+  `;
+  document.body.appendChild(t);
+  setTimeout(() => { t.style.opacity = '0'; setTimeout(() => t.remove(), 400); }, 2000);
+}
+
+// ========== SAVE / LOAD ==========
+function saveToStorage() {
+  try {
+    const data = {
+      docDate: document.getElementById('docDate').value,
+      customerName: document.getElementById('customerName').value,
+      addr1: document.getElementById('addr1').value,
+      addr2: document.getElementById('addr2').value,
+      addr3: document.getElementById('addr3').value,
+      taxId: document.getElementById('taxId').value,
+      branch: document.querySelector('input[name="branch"]:checked')?.value || 'main',
+      branchNo: document.getElementById('branchNo').value,
+      paymentCash: document.getElementById('paymentCash').checked,
+      paymentCard: document.getElementById('paymentCard').checked,
+      paymentCheque: document.getElementById('paymentCheque').checked,
+      cardNo: document.getElementById('cardNo').value,
+      bankName: document.getElementById('bankName').value,
+      chequeNo: document.getElementById('chequeNo').value,
+      chequeDate: document.getElementById('chequeDate').value,
+      chequeBranch: document.getElementById('chequeBranch').value,
+      sigName: document.getElementById('sigName').value,
+    };
+    localStorage.setItem(LS_FORM, JSON.stringify(data));
+    localStorage.setItem(LS_ITEMS, JSON.stringify(items));
+    // Signature saved separately (large base64 string)
+    if (sigDataUrl) {
+      localStorage.setItem(LS_SIG, sigDataUrl);
+    }
+  } catch(e) {
+    // localStorage might be full (signature too large) — silently ignore
+  }
+}
+
+function debouncedSave() {
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(() => {
+    saveToStorage();
+    showToast('💾 บันทึกอัตโนมัติแล้ว');
+  }, 800);
+}
+
+function loadFromStorage() {
+  try {
+    const raw = localStorage.getItem(LS_FORM);
+    const rawItems = localStorage.getItem(LS_ITEMS);
+    const rawSig = localStorage.getItem(LS_SIG);
+
+    if (!raw) return false; // No saved data
+
+    const data = JSON.parse(raw);
+    document.getElementById('docDate').value = data.docDate || '';
+    document.getElementById('customerName').value = data.customerName || '';
+    document.getElementById('addr1').value = data.addr1 || '';
+    document.getElementById('addr2').value = data.addr2 || '';
+    document.getElementById('addr3').value = data.addr3 || '';
+    document.getElementById('taxId').value = data.taxId || '';
+    document.getElementById('branchNo').value = data.branchNo || '';
+    document.getElementById('cardNo').value = data.cardNo || '';
+    document.getElementById('bankName').value = data.bankName || '';
+    document.getElementById('chequeNo').value = data.chequeNo || '';
+    document.getElementById('chequeDate').value = data.chequeDate || '';
+    document.getElementById('chequeBranch').value = data.chequeBranch || '';
+    document.getElementById('sigName').value = data.sigName || 'ผู้รับเงิน';
+    document.getElementById('paymentCash').checked = data.paymentCash !== false;
+    document.getElementById('paymentCard').checked = !!data.paymentCard;
+    document.getElementById('paymentCheque').checked = !!data.paymentCheque;
+
+    // Branch radio
+    const branchVal = data.branch || 'main';
+    const branchRadio = document.querySelector(`input[name="branch"][value="${branchVal}"]`);
+    if (branchRadio) {
+      branchRadio.checked = true;
+      document.getElementById('branchNoGroup').style.display =
+        branchVal === 'branch' ? 'block' : 'none';
+    }
+
+    // Items
+    if (rawItems) {
+      const parsedItems = JSON.parse(rawItems);
+      if (Array.isArray(parsedItems) && parsedItems.length > 0) {
+        items = parsedItems;
+      }
+    }
+
+    // Signature — always restore if exists
+    if (rawSig) {
+      sigDataUrl = rawSig;
+      const prev = document.getElementById('sigPreview');
+      prev.src = sigDataUrl;
+      prev.style.display = 'block';
+      document.getElementById('sigUploadText').style.display = 'none';
+    }
+
+    return true;
+  } catch(e) {
+    return false;
+  }
+}
 
 // ========== TABS (MOBILE) ==========
 function switchTab(tab) {
@@ -1301,14 +1426,6 @@ window.addEventListener('resize', () => {
 
 // ========== INIT ==========
 window.addEventListener('DOMContentLoaded', () => {
-  // Set default values
-  document.getElementById('docDate').value = '2026-03-08';
-  document.getElementById('customerName').value = 'บริษัท เคหุ เวนเจอร์ฯ จำกัด (สำนักงานใหญ่)';
-  document.getElementById('addr1').value = 'บ้านเลขที่ 30 ซ.พระราม เก้า 41 (ซอย4เสรี2)';
-  document.getElementById('addr2').value = 'ถ.รามคำแหง แขวง/เขต สวนหลวง กรุงเทพฯ 10250';
-  document.getElementById('taxId').value = 'เลขทะเบียนนิติบุคคล 0105554132374';
-  document.getElementById('sigName').value = 'ผู้รับเงิน';
-
   // Branch radio listener
   document.querySelectorAll('input[name="branch"]').forEach(r => {
     r.addEventListener('change', () => {
@@ -1317,6 +1434,21 @@ window.addEventListener('DOMContentLoaded', () => {
       updatePreview();
     });
   });
+
+  // Try loading saved data first
+  const restored = loadFromStorage();
+
+  if (!restored) {
+    // Set demo defaults only when no saved data
+    document.getElementById('docDate').value = '2026-03-08';
+    document.getElementById('customerName').value = 'บริษัท เคหุ เวนเจอร์ฯ จำกัด (สำนักงานใหญ่)';
+    document.getElementById('addr1').value = 'บ้านเลขที่ 30 ซ.พระราม เก้า 41 (ซอย4เสรี2)';
+    document.getElementById('addr2').value = 'ถ.รามคำแหง แขวง/เขต สวนหลวง กรุงเทพฯ 10250';
+    document.getElementById('taxId').value = 'เลขทะเบียนนิติบุคคล 0105554132374';
+    document.getElementById('sigName').value = 'ผู้รับเงิน';
+  } else {
+    setTimeout(() => showToast('📂 โหลดข้อมูลที่บันทึกไว้แล้ว'), 400);
+  }
 
   renderItemsForm();
   updatePreview();
@@ -1462,6 +1594,9 @@ function handleSigUpload(e) {
     prev.src = sigDataUrl;
     prev.style.display = 'block';
     document.getElementById('sigUploadText').style.display = 'none';
+    // Save signature immediately to localStorage
+    try { localStorage.setItem(LS_SIG, sigDataUrl); } catch(e) {}
+    showToast('✍️ บันทึกลายเซ็นแล้ว');
     updatePreview();
   };
   reader.readAsDataURL(file);
@@ -1473,6 +1608,8 @@ function clearSig() {
   document.getElementById('sigPreview').src = '';
   document.getElementById('sigUploadText').style.display = 'block';
   document.getElementById('sigFile').value = '';
+  try { localStorage.removeItem(LS_SIG); } catch(e) {}
+  showToast('🗑️ ลบลายเซ็นแล้ว', 'warn');
   updatePreview();
 }
 
@@ -1556,7 +1693,7 @@ function getFormData() {
 
 // ========== RESET ==========
 function resetForm() {
-  if (!confirm('รีเซ็ตข้อมูลทั้งหมด?')) return;
+  if (!confirm('รีเซ็ตข้อมูลทั้งหมด? (ยกเว้นลายเซ็น)')) return;
   document.getElementById('docDate').value = '';
   document.getElementById('customerName').value = '';
   document.getElementById('addr1').value = '';
@@ -1573,10 +1710,18 @@ function resetForm() {
   document.getElementById('paymentCash').checked = true;
   document.getElementById('paymentCard').checked = false;
   document.getElementById('paymentCheque').checked = false;
+  // Reset branch to main
+  const mainRadio = document.querySelector('input[name="branch"][value="main"]');
+  if (mainRadio) { mainRadio.checked = true; document.getElementById('branchNoGroup').style.display = 'none'; }
   items = [{ detail: '', subdetail: '', price: 0, qty: 1, unit: 'วัน' }];
-  clearSig();
+  // Clear storage (keep signature)
+  try {
+    localStorage.removeItem(LS_FORM);
+    localStorage.removeItem(LS_ITEMS);
+  } catch(e) {}
   renderItemsForm();
   updatePreview();
+  showToast('🗑️ รีเซ็ตข้อมูลแล้ว (ลายเซ็นยังคงอยู่)', 'warn');
 }
 
 // ========== RENDER RECEIPT ==========
@@ -1743,6 +1888,7 @@ function updatePreview() {
       <div class="receipt-col">${buildReceiptColumn(data, true)}</div>
     </div>
   `;
+  debouncedSave();
 }
 </script>
 </body>
