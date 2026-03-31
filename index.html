@@ -583,9 +583,10 @@
     }
 
     .receipt-taxid {
-      font-size: 10px;
+      font-size: 11px;
       margin-left: 42px;
       margin-top: 4px;
+      margin-bottom: 4px;
       color: #1a1a1a;
     }
 
@@ -640,8 +641,8 @@
     }
 
     .checkbox-box {
-      width: 12px;
-      height: 12px;
+      width: 14px;
+      height: 14px;
       border: 1px solid #555;
       display: inline-flex;
       align-items: center;
@@ -1297,11 +1298,12 @@
 
             <div class="form-group">
               <label>ชื่อ / Name</label>
-              <input type="text" id="customerName" placeholder="ชื่อบริษัท / ชื่อ-นามสกุล" oninput="onCustomerNameInput()" autocomplete="off">
+              <input type="text" id="customerName" placeholder="ชื่อบริษัท/ชื่อ-นามสกุล" oninput="onCustomerNameInput()"
+                autocomplete="off">
             </div>
             <div class="form-group">
               <label>ที่อยู่บรรทัดที่ 1</label>
-              <input type="text" id="addr1" placeholder="ที่อยู่เลขที่" oninput="updatePreview()">
+              <input type="text" id="addr1" placeholder="ที่อยู่เลขที่ ตึก ชั้น" oninput="updatePreview()">
             </div>
             <div class="form-group">
               <label>ที่อยู่บรรทัดที่ 2</label>
@@ -2212,11 +2214,13 @@
         ${!isPerson ? `
         <div class="branch-row">
           <div class="branch-option">
-            <span style="font-size:12px">${isMain ? '☑' : '☐'} สำนักงานใหญ่</span>
-          </div>
-          <div class="branch-option">
-            <span style="font-size:12px">${!isMain ? '☑' : '☐'} สาขาที่ ${!isMain ? (data.branchNo || '') : ''}</span>
-          </div>
+  <div class="checkbox-box">${isMain ? '✓' : ''}</div>
+  <span>สำนักงานใหญ่</span>
+</div>
+<div class="branch-option">
+  <div class="checkbox-box">${!isMain ? '✓' : ''}</div>
+  <span>สาขาที่ ${!isMain ? (data.branchNo || '') : ''}</span>
+</div>
         </div>` : ''}
       </div>
       <div class="receipt-top-right">
