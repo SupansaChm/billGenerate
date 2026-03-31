@@ -594,7 +594,7 @@
       gap: 14px;
       margin-left: 42px;
       margin-top: 5px;
-      font-size: 10px;
+      font-size: 11px;
       align-items: center;
     }
 
@@ -602,6 +602,41 @@
       display: flex;
       align-items: center;
       gap: 4px;
+    }
+
+    /* Customer type toggle in form */
+    .customer-type-toggle {
+      display: flex;
+      gap: 8px;
+      margin-top: 4px;
+    }
+
+    .customer-type-toggle label {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 9px 10px;
+      border: 1.5px solid var(--gray-200);
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.8rem;
+      font-weight: 500;
+      color: var(--gray-600);
+      transition: all 0.15s;
+      margin: 0;
+    }
+
+    .customer-type-toggle input[type="radio"] {
+      display: none;
+    }
+
+    .customer-type-toggle label:has(input:checked) {
+      border-color: var(--black);
+      background: var(--black);
+      color: var(--white);
+      font-weight: 700;
     }
 
     .checkbox-box {
@@ -1244,9 +1279,25 @@
           <!-- ข้อมูลลูกค้า -->
           <div class="form-section">
             <div class="form-section-title">ข้อมูลผู้เช่า / ลูกค้า</div>
+
+            <!-- ประเภทลูกค้า -->
+            <div class="form-group">
+              <label>ประเภทผู้เช่า</label>
+              <div class="customer-type-toggle">
+                <label>
+                  <input type="radio" name="customerType" value="company" onchange="onCustomerTypeChange()" checked>
+                  🏢 นิติบุคคล
+                </label>
+                <label>
+                  <input type="radio" name="customerType" value="person" onchange="onCustomerTypeChange()">
+                  👤 บุคคลธรรมดา
+                </label>
+              </div>
+            </div>
+
             <div class="form-group">
               <label>ชื่อ / Name</label>
-              <input type="text" id="customerName" placeholder="ชื่อบริษัท" oninput="updatePreview()">
+              <input type="text" id="customerName" placeholder="ชื่อบริษัท / ชื่อ-นามสกุล" oninput="onCustomerNameInput()" autocomplete="off">
             </div>
             <div class="form-group">
               <label>ที่อยู่บรรทัดที่ 1</label>
@@ -1261,10 +1312,12 @@
               <input type="text" id="addr3" placeholder="จังหวัด และ รหัสไปรษณีย์" oninput="updatePreview()">
             </div>
             <div class="form-group">
-              <label>เลขทะเบียนนิติบุคคล / เลขประจำตัวผู้เสียภาษี</label>
-              <input type="text" id="taxId" placeholder="ประเภทเลข และ เลข 13 หลัก" oninput="updatePreview()">
+              <label id="taxIdLabel">เลขประจำตัวผู้เสียภาษี (นิติบุคคล)</label>
+              <input type="text" id="taxId" placeholder="เลข 13 หลัก" oninput="updatePreview()">
             </div>
-            <div class="form-group">
+
+            <!-- สาขา — แสดงเฉพาะนิติบุคคล -->
+            <div class="form-group" id="branchGroup">
               <label>สาขา</label>
               <div class="form-row">
                 <label style="display:flex;align-items:center;gap:6px;font-weight:400;cursor:pointer;margin:0">
@@ -1441,6 +1494,7 @@
     function collectFormData() {
       return {
         doc_date: document.getElementById('docDate').value || null,
+        customer_type: document.querySelector('input[name="customerType"]:checked')?.value || 'company',
         customer_name: document.getElementById('customerName').value,
         addr1: document.getElementById('addr1').value,
         addr2: document.getElementById('addr2').value,
@@ -1466,6 +1520,12 @@
     // ========== APPLY DATA TO FORM ==========
     function applyDataToForm(data) {
       document.getElementById('docDate').value = data.doc_date || '';
+
+      // Restore customer type first so branch UI is correct
+      const custType = data.customer_type || 'company';
+      const custTypeRadio = document.querySelector(`input[name="customerType"][value="${custType}"]`);
+      if (custTypeRadio) { custTypeRadio.checked = true; onCustomerTypeChange(); }
+
       document.getElementById('customerName').value = data.customer_name || '';
       document.getElementById('addr1').value = data.addr1 || '';
       document.getElementById('addr2').value = data.addr2 || '';
@@ -2012,6 +2072,7 @@
     function getFormData() {
       return {
         docDate: document.getElementById('docDate').value,
+        customerType: document.querySelector('input[name="customerType"]:checked')?.value || 'company',
         customerName: document.getElementById('customerName').value,
         addr1: document.getElementById('addr1').value,
         addr2: document.getElementById('addr2').value,
@@ -2031,7 +2092,26 @@
       };
     }
 
-    // ========== RESET ==========
+    // ========== CUSTOMER TYPE ==========
+    function onCustomerTypeChange() {
+      const isPerson = document.querySelector('input[name="customerType"]:checked')?.value === 'person';
+      const branchGroup = document.getElementById('branchGroup');
+      const branchNoGroup = document.getElementById('branchNoGroup');
+      const taxLabel = document.getElementById('taxIdLabel');
+
+      if (isPerson) {
+        branchGroup.style.display = 'none';
+        branchNoGroup.style.display = 'none';
+        taxLabel.textContent = 'เลขประจำตัวผู้เสียภาษี (บุคคลธรรมดา)';
+      } else {
+        branchGroup.style.display = '';
+        taxLabel.textContent = 'เลขประจำตัวผู้เสียภาษี (นิติบุคคล)';
+        // restore branch sub-group if "สาขา" was selected
+        const branchVal = document.querySelector('input[name="branch"]:checked')?.value;
+        branchNoGroup.style.display = branchVal === 'branch' ? 'block' : 'none';
+      }
+      updatePreview();
+    }
     function resetForm() {
       if (!confirm('รีเซ็ตข้อมูลทั้งหมด? (ยกเว้นลายเซ็น)\nจะสร้าง Draft ใหม่ใน Database')) return;
       currentDraftId = null; // will create a new draft on next save
@@ -2053,6 +2133,8 @@
       document.getElementById('paymentCheque').checked = false;
       const mainRadio = document.querySelector('input[name="branch"][value="main"]');
       if (mainRadio) { mainRadio.checked = true; document.getElementById('branchNoGroup').style.display = 'none'; }
+      const companyRadio = document.querySelector('input[name="customerType"][value="company"]');
+      if (companyRadio) { companyRadio.checked = true; onCustomerTypeChange(); }
       items = [{ detail: '', subdetail: '', price: 0, qty: 1, unit: 'วัน' }];
       const dd = document.getElementById('customerDropdown');
       if (dd) dd.style.display = 'none';
@@ -2067,6 +2149,7 @@
       const totalWords = numberToThaiWords(total);
       const dateDisplay = formatDateThai(data.docDate);
       const isMain = data.branch === 'main';
+      const isPerson = data.customerType === 'person';
 
       // Items rows
       const EMPTY_ROWS = 6;
@@ -2125,17 +2208,16 @@
           <span class="receipt-info-label">ที่อยู่</span>
           <span class="receipt-info-value" style="line-height:1.6">${addrLines}</span>
         </div>
-        ${data.taxId ? `<div class="receipt-taxid">${data.taxId}</div>` : ''}
+        ${data.taxId ? `<div class="receipt-taxid">เลขประจำตัวผู้เสียภาษี ${data.taxId}</div>` : ''}
+        ${!isPerson ? `
         <div class="branch-row">
           <div class="branch-option">
-            <div class="checkbox-box">${isMain ? '✓' : ''}</div>เช่น บริษัท เคหุ เวนเจอร์ฯ
-            <span>สำนักงานใหญ่</span>
+            <span style="font-size:12px">${isMain ? '☑' : '☐'} สำนักงานใหญ่</span>
           </div>
           <div class="branch-option">
-            <div class="checkbox-box">${!isMain ? '✓' : ''}</div>
-            <span>สาขาที่ ${!isMain ? (data.branchNo || '') : ''}</span>
+            <span style="font-size:12px">${!isMain ? '☑' : '☐'} สาขาที่ ${!isMain ? (data.branchNo || '') : ''}</span>
           </div>
-        </div>
+        </div>` : ''}
       </div>
       <div class="receipt-top-right">
         <div class="receipt-badge">${isCopy ? 'สำเนา<br>COPY' : 'ต้นฉบับ<br>ORIGINAL'}</div>
